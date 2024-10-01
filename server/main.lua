@@ -1,6 +1,19 @@
 local QBCore = exports['qb-core']:GetCoreObject()
 
-local webhookURL = Config.WebhookURL 
+local webhookURL = Config.WebhookURL
+
+local function Notify(src, msg, type, time)
+    if Config.NotificationSystem == "ox" then
+        TriggerClientEvent('ox_lib:notify', src, {
+            title = 'Notification',
+            description = msg,
+            type = type,
+            duration = time or 5000 
+        })
+    elseif Config.NotificationSystem == "qb" then
+        TriggerClientEvent('QBCore:Notify', src, msg, type, time or 5000)
+    end
+end
 
 local function sendToDiscordLog(title, message, color)
     local connect = {
@@ -61,19 +74,16 @@ local function registerVehicleInDatabase(Player, model)
         0 
     }, function(id)
         if id then
-            print('Fordonet har lagts till i databasen med ID: ' .. id)
-            sendToDiscordLog("Starter Pack", "Spelaren med citizenid: " .. citizenid .. " fick fordonet med regnummer: " .. plate, 3066993) 
+            sendToDiscordLog(Config.VehicleLogTitle, Config.PlayerWithcitizen .. citizenid .. Config.GotVehicle .. plate, 3066993) 
         else
-            print('Ett fel uppstod när fordonet skulle läggas till i databasen.')
-            sendToDiscordLog("Fel", "Kunde inte registrera fordon för spelare med citizenid: " .. citizenid, 15158332) 
+            sendToDiscordLog("ERROR", Config.Error .. citizenid, 15158332)
         end
     end)
-
     return plate
 end
 
-RegisterNetEvent('smdx-pack:getPackFromServer')
-AddEventHandler('smdx-pack:getPackFromServer', function(vehicleModel, plate)
+RegisterNetEvent('smdx-starterpack:GetPack')
+AddEventHandler('smdx-starterpack:GetPack', function(vehicleModel, plate)
     local src = source
     local Player = QBCore.Functions.GetPlayer(src)
     local citizenid = Player.PlayerData.citizenid
@@ -81,8 +91,8 @@ AddEventHandler('smdx-pack:getPackFromServer', function(vehicleModel, plate)
 
     hasReceivedStarterPack(citizenid, function(hasReceived)
         if hasReceived then
-            TriggerClientEvent('QBCore:Notify', src, Config.AlreadyClaimed, 'error')
-            sendToDiscordLog("Starter Pack", playerName .. " (citizenid: " .. citizenid .. ") försökte hämta ett paket igen, men har redan gjort det.", 15158332)
+            Notify(src, Config.AlreadyClaimed, 'error', Config.NotifyDuration)
+            sendToDiscordLog(Config.StarterPackLogTitle, playerName .. " (citizenid: " .. citizenid .. ")" .. Config.TriedAgain, 15158332)
         else
             for _, item in pairs(Config.PackItems) do
                 Player.Functions.AddItem(item.item, item.amount)
@@ -91,7 +101,7 @@ AddEventHandler('smdx-pack:getPackFromServer', function(vehicleModel, plate)
             local plate = registerVehicleInDatabase(Player, vehicleModel)
             TriggerClientEvent('smdx-pack:spawnVehicle', src, vehicleModel, plate)
             registerStarterPack(citizenid)
-            sendToDiscordLog("Starter Pack", playerName .. " (citizenid: " .. citizenid .. ") har hämtat sitt startpaket.", 3066993)
+            sendToDiscordLog(Config.StarterPackLogTitle, playerName .. " (citizenid: " .. citizenid .. ")" .. Config.Claimed, 3066993)
         end
     end)
 end)

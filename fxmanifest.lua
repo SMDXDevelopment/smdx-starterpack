@@ -7,6 +7,7 @@ author 'SkapMicke - SMDX Development'
 description 'Starterpack'
 
 shared_scripts {
+    '@ox_lib/init.lua',
 	'config.lua'
 }
 
